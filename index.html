@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Interesting X · Quantum Ripple Tank</title>
+    <meta name="description" content="Fire an electron at a brass double slit and watch its wave go through both slits at once and paint interference stripes, or tunnel through a wall, live in 3D from Schrodinger's equation." />
+    <meta name="theme-color" content="#050607" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="stage"></div>
+
+      <header class="intro" id="intro">
+        <h1>Quantum Ripple Tank</h1>
+        <p class="sub">Schrödinger's equation, live: one electron, two slits</p>
+        <p class="hint">Tap the water to drop an electron · drag the brass wall · drag to turn</p>
+        <button class="help" id="btn-help" type="button" aria-controls="explain" aria-expanded="false"><i aria-hidden="true">?</i>What am I looking at?</button>
+      </header>
+
+      <div class="badge" id="badge" hidden>simple mode (no WebGL)</div>
+
+      <section class="panel dock" id="dock" aria-label="Controls">
+        <p class="caption" id="caption" aria-live="polite"><i class="dot" aria-hidden="true"></i><span id="caption-text">Getting the electron gun ready…</span></p>
+
+        <div class="main-row">
+          <button id="btn-fire" class="btn fire" type="button">Fire<span class="btn-sub">launch one electron</span></button>
+          <label class="ctl energy">
+            <span class="ctl-row"><span class="cap">Electron energy</span><span class="mono" id="energy-val">λ 7.0</span></span>
+            <input id="energy" type="range" min="0" max="100" step="1" value="43" aria-label="Electron energy: slower means longer waves and wider stripes" />
+            <span class="desc">slower = longer waves, wider stripes</span>
+          </label>
+        </div>
+
+        <div class="seg" id="modes" role="radiogroup" aria-label="Scene">
+          <button type="button" role="radio" class="seg-btn" id="mode-double" data-mode="double" aria-checked="true">Double slit</button>
+          <button type="button" role="radio" class="seg-btn" id="mode-single" data-mode="single" aria-checked="false">Single slit</button>
+          <button type="button" role="radio" class="seg-btn" id="mode-tunnel" data-mode="tunnel" aria-checked="false">Tunnel wall</button>
+          <button type="button" role="radio" class="seg-btn" id="mode-open" data-mode="open" aria-checked="false">Open water</button>
+        </div>
+
+        <div class="meter" id="meter">
+          <div class="meter-head">
+            <span class="cap" id="meter-label">Got through the slits</span>
+            <span class="meter-val mono" id="meter-val">0%</span>
+          </div>
+          <div class="meter-track"><div class="meter-fill" id="meter-fill"></div><div class="meter-theory" id="meter-theory" hidden></div></div>
+          <div class="meter-ends"><span id="meter-lo">0% = all bounced back</span><span id="meter-hi">100% = all passed through</span></div>
+        </div>
+        <p class="count"><b id="dot-count">0</b> <span id="dot-word">electrons detected on the screen</span> <span class="faint">(each dot = one electron)</span></p>
+
+        <div class="btn-row">
+          <button id="btn-auto" class="btn toggle" type="button" aria-pressed="true"><i aria-hidden="true"></i>Auto-fire</button>
+          <button id="btn-adv" class="btn" type="button" aria-expanded="false" aria-controls="adv">Advanced</button>
+        </div>
+        <p class="credit credit-in-dock">
+          Inspired by <a href="https://x.com/mathemetica/status/2111838308246671613" target="_blank" rel="noopener">@mathemetica's ‘Four equations’ post</a>
+        </p>
+      </section>
+
+      <aside class="panel adv" id="adv" hidden aria-label="Advanced">
+        <div class="adv-head">
+          <span class="cap">Advanced</span>
+          <button class="x" id="btn-adv-close" type="button" aria-label="Close advanced">×</button>
+        </div>
+        <p class="caption adv-caption" aria-hidden="true"><i class="dot" aria-hidden="true"></i><span id="adv-caption-text"></span></p>
+
+        <label class="ctl" data-show="double">
+          <span class="ctl-row"><span class="cap">Slit separation <span class="tag">d</span></span><span class="mono" id="sep-val">30</span></span>
+          <span class="desc">Distance between the two slits: further apart = narrower stripes</span>
+          <input id="sep" type="range" min="16" max="48" step="1" value="30" aria-label="Slit separation" />
+        </label>
+        <label class="ctl" data-show="double single">
+          <span class="ctl-row"><span class="cap">Slit width <span class="tag">a</span></span><span class="mono" id="width-val">6</span></span>
+          <span class="desc">How wide each opening is: narrower = the wave fans out more</span>
+          <input id="width" type="range" min="3" max="30" step="0.5" value="6" aria-label="Slit width" />
+        </label>
+        <label class="ctl" data-show="tunnel">
+          <span class="ctl-row"><span class="cap">Wall thickness</span><span class="mono" id="thick-val">2.0</span></span>
+          <span class="desc">Thicker wall = far less gets through (it drops off exponentially)</span>
+          <input id="thick" type="range" min="1" max="6" step="0.1" value="2" aria-label="Wall thickness" />
+        </label>
+        <label class="ctl" data-show="tunnel">
+          <span class="ctl-row"><span class="cap">Wall height <span class="tag">V₀</span></span><span class="mono" id="height-val">1.5× energy</span></span>
+          <span class="desc">Above 1× the electron's energy, a ball could never get over; a wave partly can</span>
+          <input id="height" type="range" min="0.2" max="1.4" step="0.01" value="0.6" aria-label="Wall height" />
+        </label>
+        <label class="ctl">
+          <span class="ctl-row"><span class="cap">Packet width <span class="tag">σ</span></span><span class="mono" id="sigma-val">14</span></span>
+          <span class="desc">How spread out the electron starts (next shot)</span>
+          <input id="sigma" type="range" min="8" max="22" step="0.5" value="14" aria-label="Packet width" />
+        </label>
+        <label class="ctl">
+          <span class="ctl-row"><span class="cap">Simulation speed</span><span class="mono" id="speed-val">1.0×</span></span>
+          <span class="desc">Slow motion or fast-forward (the physics is the same)</span>
+          <input id="speed" type="range" min="0.25" max="2" step="0.05" value="1" aria-label="Simulation speed" />
+        </label>
+
+        <div class="toggles">
+          <button id="adv-fire" class="btn chip fire-chip" type="button">Fire an electron</button>
+          <button id="adv-auto" class="btn chip" type="button" aria-pressed="true">Auto-fire and measure</button>
+          <button id="btn-measure" class="btn chip" type="button">Measure now (find the electron)</button>
+          <button id="btn-phase" class="btn chip" type="button" aria-pressed="true">Phase colour</button>
+          <button id="btn-theory" class="btn chip" type="button" aria-pressed="false">Theory overlay</button>
+          <button id="btn-clear" class="btn chip" type="button">Clear dots</button>
+        </div>
+        <p class="desc" id="adv-dots"><b id="adv-dots-n">0</b> electrons detected. With Auto-fire on, each wave you see stands for a batch of electrons sent one at a time; each one lands as a single dot, with the odds the wave gives.</p>
+
+        <div class="plot-head"><span class="cap">Where electrons landed</span><span class="mono" id="spacing-val"></span></div>
+        <canvas id="plot-hist" class="plot" width="320" height="110" aria-label="Histogram of detected electrons across the screen, with the theory curve"></canvas>
+        <div class="legend"><span><i class="sw hist"></i>dots so far</span><span><i class="sw th"></i>theory</span></div>
+
+        <div class="plot-head"><span class="cap" id="spark-label">Got through, over time</span><span class="mono" id="spark-val"></span></div>
+        <canvas id="plot-spark" class="plot" width="320" height="64" aria-label="Transmitted probability over the last 12 seconds"></canvas>
+        <p class="explain">i ∂ψ/∂t = −½∇²ψ + Vψ (ħ = m = 1), solved live with the split-step Fourier method on a 256 × 128 grid, absorbing edges. Total probability now: <span id="norm-val">1.000</span> (it only drops when the edges absorb the wave).</p>
+      </aside>
+
+      <section class="panel explain-card" id="explain" role="dialog" aria-labelledby="explain-title" hidden>
+        <div class="explain-head">
+          <h2 id="explain-title">What you're looking at</h2>
+          <button class="x" id="btn-explain-x" type="button" aria-label="Close explanation">×</button>
+        </div>
+        <div class="explain-body">
+          <p>A real simulation of <b>Schrödinger's equation</b>, the rule that governs how an electron moves. The glowing surface is the electron's <b>wave</b>: the taller and brighter it is, the more likely the electron is to be found there. The colours show the wave's <b>phase</b> (where it is in its up-down cycle).</p>
+          <ul class="legend-list">
+            <li><i class="ic gun"></i><span><b>Silver nozzle</b> = electron gun</span></li>
+            <li><i class="ic brass"></i><span><b>Brass wall with slits</b> = the barrier</span></li>
+            <li><i class="ic screen"></i><span><b>Frosted strip</b> = detector screen; <b>each dot</b> = one electron detected</span></li>
+          </ul>
+          <p><span class="lead">Why it matters:</span> one electron goes through <b>both slits at once</b> and interferes with itself. This is why chips, lasers, MRI and electron microscopes work, and why quantum tunnelling limits how small transistors can get.</p>
+          <p class="try"><span class="lead">Try:</span> press <b>Fire</b>. Slide <b>Energy</b> and watch the stripes get wider or narrower. Switch to <b>Tunnel wall</b> to see part of the electron pass through a wall it can't classically cross. <b>Auto-fire</b> builds the stripe pattern one electron at a time.</p>
+        </div>
+        <button class="btn primary" id="btn-explain-ok" type="button">Got it</button>
+      </section>
+
+      <footer class="credit credit-foot">
+        Inspired by <a href="https://x.com/mathemetica/status/2111838308246671613" target="_blank" rel="noopener">@mathemetica's ‘Four equations’ post</a>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
